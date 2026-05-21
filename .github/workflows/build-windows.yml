@@ -1,0 +1,62 @@
+name: Build Windows EXE
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install pyinstaller psutil
+
+      - name: Build EXE
+        run: |
+          pyinstaller --onefile --windowed --name "PixelProTech_DriveManager" PixelProTech_DriveManager.py
+
+      - name: Upload EXE as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PixelProTech_DriveManager_Windows
+          path: dist/PixelProTech_DriveManager.exe
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: github.ref == 'refs/heads/main'
+        with:
+          tag_name: v1.0.0
+          name: PixelProTech Drive Manager v1.0.0
+          body: |
+            ## PixelProTech Drive Manager v1.0.0
+            **Windows standalone executable — no Python required.**
+
+            ### Download
+            - `PixelProTech_DriveManager.exe` — Windows 10/11, double-click to run
+
+            ### Features
+            - Auto-detect USB drives, SD cards, external HDDs
+            - Rename drive labels
+            - Clean drive (delete all files)
+            - Format drive (FAT32 / NTFS / exFAT)
+            - Safe eject
+
+            ---
+            Built by PixelProTech Solutions · Gauteng, South Africa
+            076 645 9348 · pixelprotechsolutions@gmail.com
+          files: dist/PixelProTech_DriveManager.exe
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
