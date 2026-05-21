@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PixelProTech Drive Manager — USB & Drive Tool | Gauteng</title>
+<meta name="description" content="Free USB & drive management tool by PixelProTech Solutions. Detect, rename, clean, format and eject removable drives. Built for Gauteng."/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Rajdhani:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+<style>
+  :root {
+    --bg:       #0A0A0F;
+    --panel:    #111118;
+    --card:     #16161F;
+    --border:   #2A2A3A;
+    --accent:   #7B4FFF;
+    --cyan:     #00E5FF;
+    --lime:     #B5F23D;
+    --text:     #EEEEF5;
+    --muted:    #8888AA;
+    --dim:      #444460;
+    --success:  #22DD88;
+    --danger:   #FF4455;
+    --warning:  #FFB020;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Rajdhani', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Noise overlay */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* Scan lines */
+  body::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.08) 2px, rgba(0,0,0,0.08) 4px);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Grid background */
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(123,79,255,0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(123,79,255,0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Glow blobs */
+  .blob {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .blob-1 { width: 500px; height: 500px; background: rgba(123,79,255,0.08); top: -100px; left: -100px; }
+  .blob-2 { width: 400px; height: 400px; background: rgba(0,229,255,0.05); bottom: 0; right: -100px; }
+
+  /* ── NAV ── */
+  nav {
+    position: relative; z-index: 10;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 40px;
+    border-bottom: 1px solid var(--border);
+    background: rgba(10,10,15,0.8);
+    backdrop-filter: blur(12px);
+  }
+  .nav-brand {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.4rem;
+    letter-spacing: 2px;
+    color: var(--text);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .nav-brand span { color: var(--accent); }
+  .nav-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    background: var(--accent);
+    color: #fff;
+    padding: 2px 8px;
+    border-radius: 2px;
+    letter-spacing: 1px;
+  }
+  .nav-links { display: flex; gap: 24px; align-items: center; }
+  .nav-links a {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-decoration: none;
+    letter-spacing: 1px;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--cyan); }
+
+  /* ── HERO ── */
+  .hero {
+    position: relative; z-index: 1;
+    display: flex; flex-direction: column; align-items: center;
+    text-align: center;
+    padding: 100px 40px 60px;
+  }
+
+  .hero-tag {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--accent);
+    letter-spacing: 3px;
+    border: 1px solid rgba(123,79,255,0.3);
+    padding: 6px 16px;
+    border-radius: 2px;
+    margin-bottom: 28px;
+    animation: fadeUp 0.6s ease both;
+  }
+
+  .hero h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(3rem, 8vw, 7rem);
+    line-height: 0.95;
+    letter-spacing: 2px;
+    color: var(--text);
+    animation: fadeUp 0.6s 0.1s ease both;
+  }
+  .hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+  }
+
+  .hero-sub {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: var(--muted);
+    max-width: 560px;
+    margin: 20px auto 0;
+    line-height: 1.6;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+
+  .hero-actions {
+    display: flex; gap: 16px; margin-top: 40px;
+    flex-wrap: wrap; justify-content: center;
+    animation: fadeUp 0.6s 0.3s ease both;
+  }
+
+  .btn-primary {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 2px;
+    padding: 14px 32px;
+    border-radius: 4px;
+    text-decoration: none;
+    border: none; cursor: pointer;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    box-shadow: 0 0 30px rgba(123,79,255,0.3);
+  }
+  .btn-primary:hover {
+    background: var(--cyan);
+    color: var(--bg);
+    transform: translateY(-2px);
+    box-shadow: 0 0 40px rgba(0,229,255,0.4);
+  }
+
+  .btn-ghost {
+    display: inline-flex; align-items: center; gap: 10px;
+    background: transparent;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    padding: 14px 24px;
+    border-radius: 4px;
+    text-decoration: none;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+
+  /* ── STATS ROW ── */
+  .stats {
+    position: relative; z-index: 1;
+    display: flex; justify-content: center; gap: 0;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+    animation: fadeUp 0.6s 0.4s ease both;
+  }
+  .stat {
+    flex: 1; max-width: 220px;
+    padding: 28px 20px;
+    text-align: center;
+    border-right: 1px solid var(--border);
+  }
+  .stat:last-child { border-right: none; }
+  .stat-val {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2.4rem;
+    color: var(--accent);
+    letter-spacing: 1px;
+    display: block;
+  }
+  .stat-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--dim);
+    letter-spacing: 2px;
+    margin-top: 4px;
+    display: block;
+  }
+
+  /* ── MOCK UI ── */
+  .mock-section {
+    position: relative; z-index: 1;
+    padding: 80px 40px;
+    display: flex; justify-content: center;
+  }
+
+  .mock-window {
+    width: 100%; max-width: 820px;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 40px 120px rgba(0,0,0,0.6), 0 0 0 1px rgba(123,79,255,0.1);
+    overflow: hidden;
+    animation: fadeUp 0.8s 0.2s ease both;
+  }
+
+  .mock-titlebar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 12px 16px;
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+  }
+  .mock-dot { width: 10px; height: 10px; border-radius: 50%; }
+  .mock-dot.r { background: #FF5F57; }
+  .mock-dot.y { background: #FEBC2E; }
+  .mock-dot.g { background: #28C840; }
+  .mock-title {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-left: 8px;
+    letter-spacing: 1px;
+  }
+  .mock-ver {
+    margin-left: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--accent);
+    background: rgba(123,79,255,0.1);
+    padding: 2px 8px;
+    border-radius: 2px;
+  }
+
+  .mock-body {
+    display: flex; gap: 0;
+  }
+
+  .mock-sidebar {
+    width: 220px; flex-shrink: 0;
+    background: var(--card);
+    border-right: 1px solid var(--border);
+    padding: 16px 0;
+  }
+  .mock-sidebar-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--dim);
+    letter-spacing: 2px;
+    padding: 0 16px 8px;
+  }
+  .mock-drive {
+    padding: 10px 16px;
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .mock-drive.active {
+    background: rgba(123,79,255,0.1);
+    border-left-color: var(--accent);
+  }
+  .mock-drive i { color: var(--accent); font-size: 1rem; }
+  .mock-drive-info { flex: 1; }
+  .mock-drive-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--text);
+    display: block;
+  }
+  .mock-drive-size {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--muted);
+  }
+  .mock-scan-btn {
+    margin: 12px 16px 0;
+    background: var(--accent);
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 3px;
+    width: calc(100% - 32px);
+    cursor: pointer;
+    text-align: center;
+  }
+
+  .mock-main {
+    flex: 1;
+    padding: 20px;
+  }
+  .mock-info-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px; margin-bottom: 16px;
+  }
+  .mock-info-row {
+    display: flex; flex-direction: column; gap: 2px;
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 4px; padding: 10px 12px;
+  }
+  .mock-info-key {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.55rem; color: var(--dim); letter-spacing: 1px;
+  }
+  .mock-info-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem; color: var(--text);
+  }
+  .mock-info-val.accent { color: var(--accent); }
+  .mock-info-val.success { color: var(--success); }
+
+  .mock-bar-wrap { margin-bottom: 16px; }
+  .mock-bar-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem; color: var(--dim); letter-spacing: 1px; margin-bottom: 6px;
+  }
+  .mock-bar-track {
+    height: 8px; background: var(--card); border-radius: 4px; overflow: hidden;
+  }
+  .mock-bar-fill {
+    height: 100%; width: 38%;
+    background: linear-gradient(90deg, var(--accent), var(--cyan));
+    border-radius: 4px;
+    animation: barGrow 1.5s 1s ease both;
+  }
+  @keyframes barGrow { from { width: 0%; } to { width: 38%; } }
+
+  .mock-action-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .mock-action-btn {
+    padding: 10px;
+    border-radius: 3px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+    border: 1px solid var(--border);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .mock-action-btn.purple { background: rgba(123,79,255,0.15); color: var(--accent); border-color: rgba(123,79,255,0.3); }
+  .mock-action-btn.yellow { background: rgba(255,176,32,0.1); color: var(--warning); border-color: rgba(255,176,32,0.3); }
+  .mock-action-btn.red    { background: rgba(255,68,85,0.1); color: var(--danger); border-color: rgba(255,68,85,0.3); }
+  .mock-action-btn.green  { background: rgba(34,221,136,0.1); color: var(--success); border-color: rgba(34,221,136,0.3); }
+
+  /* ── FEATURES ── */
+  .features {
+    position: relative; z-index: 1;
+    padding: 80px 40px;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .section-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--accent);
+    letter-spacing: 3px;
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    letter-spacing: 1px;
+    color: var(--text);
+    margin-bottom: 48px;
+  }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+  }
+  .feature-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 28px 24px;
+    transition: border-color 0.2s, transform 0.2s;
+    position: relative;
+    overflow: hidden;
+  }
+  .feature-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--accent), transparent);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .feature-card:hover { border-color: rgba(123,79,255,0.4); transform: translateY(-3px); }
+  .feature-card:hover::before { opacity: 1; }
+  .feature-icon {
+    width: 42px; height: 42px;
+    background: rgba(123,79,255,0.12);
+    border: 1px solid rgba(123,79,255,0.2);
+    border-radius: 6px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem; color: var(--accent);
+    margin-bottom: 16px;
+  }
+  .feature-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 1px;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .feature-desc {
+    font-size: 0.9rem;
+    color: var(--muted);
+    line-height: 1.6;
+    font-weight: 500;
+  }
+
+  /* ── HOW TO RUN ── */
+  .how-section {
+    position: relative; z-index: 1;
+    padding: 60px 40px;
+    background: var(--panel);
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
+  }
+  .how-inner { max-width: 820px; margin: 0 auto; }
+  .steps { display: flex; flex-direction: column; gap: 16px; margin-top: 40px; }
+  .step {
+    display: flex; align-items: flex-start; gap: 20px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 20px 24px;
+  }
+  .step-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: var(--accent);
+    line-height: 1;
+    flex-shrink: 0;
+    width: 40px;
+  }
+  .step-content {}
+  .step-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.1rem;
+    letter-spacing: 1px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+  .step-desc { font-size: 0.9rem; color: var(--muted); font-weight: 500; }
+  .step-code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    background: var(--bg);
+    color: var(--cyan);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 8px 14px;
+    margin-top: 8px;
+    display: inline-block;
+  }
+
+  /* ── FOOTER ── */
+  footer {
+    position: relative; z-index: 1;
+    padding: 40px;
+    display: flex; flex-direction: column; align-items: center;
+    gap: 12px;
+    border-top: 1px solid var(--border);
+  }
+  .footer-brand {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.2rem;
+    letter-spacing: 3px;
+    color: var(--accent);
+  }
+  .footer-links {
+    display: flex; gap: 20px; flex-wrap: wrap; justify-content: center;
+  }
+  .footer-links a {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--dim);
+    text-decoration: none;
+    letter-spacing: 1px;
+    transition: color 0.2s;
+  }
+  .footer-links a:hover { color: var(--muted); }
+  .footer-copy {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.6rem;
+    color: var(--dim);
+    letter-spacing: 1px;
+  }
+
+  /* ── ANIMATIONS ── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(24px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── OS BADGE ── */
+  .os-badges {
+    display: flex; gap: 10px; justify-content: center; margin-top: 28px;
+    animation: fadeUp 0.6s 0.35s ease both;
+  }
+  .os-badge {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 1px;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    padding: 4px 12px;
+    border-radius: 2px;
+    display: flex; align-items: center; gap: 6px;
+  }
+  .os-badge i { color: var(--success); font-size: 0.7rem; }
+
+  /* ── TICKER ── */
+  .ticker {
+    position: relative; z-index: 1;
+    overflow: hidden;
+    background: rgba(123,79,255,0.06);
+    border-top: 1px solid rgba(123,79,255,0.15);
+    border-bottom: 1px solid rgba(123,79,255,0.15);
+    padding: 10px 0;
+  }
+  .ticker-track {
+    display: flex; gap: 48px;
+    animation: ticker 20s linear infinite;
+    white-space: nowrap;
+    width: max-content;
+  }
+  @keyframes ticker { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+  .ticker-item {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--accent);
+    letter-spacing: 2px;
+  }
+  .ticker-item span { color: var(--dim); margin: 0 16px; }
+
+  @media (max-width: 640px) {
+    nav { padding: 14px 20px; }
+    .hero { padding: 60px 20px 40px; }
+    .mock-sidebar { display: none; }
+    .mock-info-grid { grid-template-columns: 1fr; }
+    .features { padding: 60px 20px; }
+    .how-section { padding: 40px 20px; }
+    footer { padding: 30px 20px; }
+    .stats { flex-wrap: wrap; }
+    .stat { min-width: 50%; border-bottom: 1px solid var(--border); }
+  }
+</style>
+</head>
+<body>
+
+<div class="grid-bg"></div>
+<div class="blob blob-1"></div>
+<div class="blob blob-2"></div>
+
+<!-- NAV -->
+<nav>
+  <div class="nav-brand">
+    <i class="ti ti-device-desktop" style="color:var(--accent)"></i>
+    <span>PIXEL</span>PROTECH
+    <div class="nav-badge">SOLUTIONS</div>
+  </div>
+  <div class="nav-links">
+    <a href="https://pixelprotech-za.github.io/pixel-fix-proZA/" target="_blank">MAIN SITE</a>
+    <a href="https://github.com/PixelProTech-ZA/PixelProTech-DriveManager" target="_blank">GITHUB</a>
+    <a href="https://wa.me/27766459348" target="_blank">WHATSAPP</a>
+  </div>
+</nav>
+
+<!-- TICKER -->
+<div class="ticker">
+  <div class="ticker-track">
+    <span class="ticker-item">DETECT DRIVES <span>·</span></span>
+    <span class="ticker-item">RENAME LABELS <span>·</span></span>
+    <span class="ticker-item">CLEAN USB <span>·</span></span>
+    <span class="ticker-item">FORMAT DRIVES <span>·</span></span>
+    <span class="ticker-item">SAFE EJECT <span>·</span></span>
+    <span class="ticker-item">WINDOWS · LINUX · MACOS <span>·</span></span>
+    <span class="ticker-item">FREE TOOL <span>·</span></span>
+    <span class="ticker-item">PIXELPROTECH SOLUTIONS <span>·</span></span>
+    <span class="ticker-item">GAUTENG ZA <span>·</span></span>
+    <span class="ticker-item">DETECT DRIVES <span>·</span></span>
+    <span class="ticker-item">RENAME LABELS <span>·</span></span>
+    <span class="ticker-item">CLEAN USB <span>·</span></span>
+    <span class="ticker-item">FORMAT DRIVES <span>·</span></span>
+    <span class="ticker-item">SAFE EJECT <span>·</span></span>
+    <span class="ticker-item">WINDOWS · LINUX · MACOS <span>·</span></span>
+    <span class="ticker-item">FREE TOOL <span>·</span></span>
+    <span class="ticker-item">PIXELPROTECH SOLUTIONS <span>·</span></span>
+    <span class="ticker-item">GAUTENG ZA <span>·</span></span>
+  </div>
+</div>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-tag">// PIXELPROTECH FREE TOOL — v1.0.0</div>
+  <h1>DRIVE<br/><em>MANAGER</em></h1>
+  <p class="hero-sub">
+    Detect, rename, clean, format & eject any USB drive, SD card or external disk.
+    Free desktop tool. No installation. Runs anywhere.
+  </p>
+  <div class="os-badges">
+    <div class="os-badge"><i class="ti ti-circle-check"></i> WINDOWS</div>
+    <div class="os-badge"><i class="ti ti-circle-check"></i> LINUX</div>
+    <div class="os-badge"><i class="ti ti-circle-check"></i> MACOS</div>
+  </div>
+  <div class="hero-actions">
+    <a class="btn-primary" href="https://github.com/PixelProTech-ZA/PixelProTech-DriveManager/releases/latest/download/PixelProTech_DriveManager.exe">
+      <i class="ti ti-brand-windows"></i> DOWNLOAD FOR WINDOWS
+    </a>
+    <a class="btn-ghost" href="https://raw.githubusercontent.com/PixelProTech-ZA/PixelProTech-DriveManager/main/PixelProTech_DriveManager.py" download>
+      <i class="ti ti-brand-python"></i> PYTHON VERSION
+    </a>
+    <a class="btn-ghost" href="https://github.com/PixelProTech-ZA/PixelProTech-DriveManager" target="_blank">
+      <i class="ti ti-brand-github"></i> GITHUB
+    </a>
+  </div>
+</section>
+
+<!-- STATS -->
+<div class="stats">
+  <div class="stat">
+    <span class="stat-val">5</span>
+    <span class="stat-label">ACTIONS BUILT IN</span>
+  </div>
+  <div class="stat">
+    <span class="stat-val">3</span>
+    <span class="stat-label">OS SUPPORTED</span>
+  </div>
+  <div class="stat">
+    <span class="stat-val">0</span>
+    <span class="stat-label">INSTALL REQUIRED</span>
+  </div>
+  <div class="stat">
+    <span class="stat-val">FREE</span>
+    <span class="stat-label">ALWAYS FREE</span>
+  </div>
+</div>
+
+<!-- MOCK UI -->
+<section class="mock-section">
+  <div class="mock-window">
+    <div class="mock-titlebar">
+      <div class="mock-dot r"></div>
+      <div class="mock-dot y"></div>
+      <div class="mock-dot g"></div>
+      <span class="mock-title">PixelProTech Drive Manager</span>
+      <span class="mock-ver">v1.0.0</span>
+    </div>
+    <div class="mock-body">
+      <div class="mock-sidebar">
+        <div class="mock-sidebar-label">// DETECTED DRIVES</div>
+        <div class="mock-drive active">
+          <i class="ti ti-usb"></i>
+          <div class="mock-drive-info">
+            <span class="mock-drive-name">KINGSTON</span>
+            <span class="mock-drive-size">16.0 GB</span>
+          </div>
+        </div>
+        <div class="mock-drive">
+          <i class="ti ti-device-sd-card"></i>
+          <div class="mock-drive-info">
+            <span class="mock-drive-name">NO LABEL</span>
+            <span class="mock-drive-size">32.0 GB</span>
+          </div>
+        </div>
+        <div class="mock-scan-btn">⟳ SCAN DRIVES</div>
+      </div>
+      <div class="mock-main">
+        <div class="mock-info-grid">
+          <div class="mock-info-row">
+            <span class="mock-info-key">LABEL</span>
+            <span class="mock-info-val accent">KINGSTON</span>
+          </div>
+          <div class="mock-info-row">
+            <span class="mock-info-key">FILE SYSTEM</span>
+            <span class="mock-info-val">FAT32</span>
+          </div>
+          <div class="mock-info-row">
+            <span class="mock-info-key">TOTAL SIZE</span>
+            <span class="mock-info-val">16.0 GB</span>
+          </div>
+          <div class="mock-info-row">
+            <span class="mock-info-key">FREE SPACE</span>
+            <span class="mock-info-val success">9.8 GB</span>
+          </div>
+        </div>
+        <div class="mock-bar-wrap">
+          <div class="mock-bar-label">STORAGE USAGE — 38%</div>
+          <div class="mock-bar-track">
+            <div class="mock-bar-fill"></div>
+          </div>
+        </div>
+        <div class="mock-action-grid">
+          <div class="mock-action-btn purple"><i class="ti ti-pencil"></i> RENAME LABEL</div>
+          <div class="mock-action-btn yellow"><i class="ti ti-trash"></i> CLEAN DRIVE</div>
+          <div class="mock-action-btn red"><i class="ti ti-settings"></i> FORMAT DRIVE</div>
+          <div class="mock-action-btn green"><i class="ti ti-plug"></i> EJECT SAFELY</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section class="features">
+  <div class="section-label">// WHAT IT DOES</div>
+  <div class="section-title">FULL DRIVE CONTROL</div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon"><i class="ti ti-radar"></i></div>
+      <div class="feature-title">AUTO DETECT</div>
+      <p class="feature-desc">Instantly detects all removable drives — USB sticks, SD cards, external HDDs. Shows label, size, filesystem and usage at a glance.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><i class="ti ti-pencil"></i></div>
+      <div class="feature-title">RENAME LABEL</div>
+      <p class="feature-desc">Give your drive a proper name. Works on FAT32, NTFS and exFAT across all platforms. Changes apply instantly.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><i class="ti ti-trash"></i></div>
+      <div class="feature-title">CLEAN DRIVE</div>
+      <p class="feature-desc">Wipe all files and folders off a drive without formatting. Faster than manual deletion. Always asks for confirmation first.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><i class="ti ti-settings-2"></i></div>
+      <div class="feature-title">FORMAT DRIVE</div>
+      <p class="feature-desc">Choose FAT32, NTFS or exFAT. Set a custom label. Full format with a single click — clean slate every time.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><i class="ti ti-plug-x"></i></div>
+      <div class="feature-title">SAFE EJECT</div>
+      <p class="feature-desc">Properly unmount and eject your drive before unplugging. No data corruption, no "device busy" errors.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><i class="ti ti-refresh"></i></div>
+      <div class="feature-title">AUTO REFRESH</div>
+      <p class="feature-desc">Drive list refreshes every 8 seconds automatically. Plug in a new drive and it appears without any manual scan needed.</p>
+    </div>
+  </div>
+</section>
+
+<!-- HOW TO RUN -->
+<section class="how-section">
+  <div class="how-inner">
+    <div class="section-label">// HOW TO RUN</div>
+    <div class="section-title">UP IN 60 SECONDS</div>
+    <div class="steps">
+      <div class="step">
+        <div class="step-num">01</div>
+        <div class="step-content">
+          <div class="step-title">DOWNLOAD THE FILE</div>
+          <p class="step-desc">Click the Download button above to get <strong>PixelProTech_DriveManager.py</strong></p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">02</div>
+        <div class="step-content">
+          <div class="step-title">MAKE SURE PYTHON IS INSTALLED</div>
+          <p class="step-desc">Python 3.7+ required. Download free from python.org if you don't have it.</p>
+          <div class="step-code">python3 --version</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">03</div>
+        <div class="step-content">
+          <div class="step-title">RUN IT</div>
+          <p class="step-desc">Open terminal in the folder where you saved the file and run:</p>
+          <div class="step-code">python3 PixelProTech_DriveManager.py</div>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-num">04</div>
+        <div class="step-content">
+          <div class="step-title">PLUG IN YOUR DRIVE & GO</div>
+          <p class="step-desc">The app auto-installs <strong>psutil</strong> on first run. Plug in a USB drive and hit SCAN. Done.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-brand">PIXELPROTECH SOLUTIONS</div>
+  <div class="footer-links">
+    <a href="https://pixelprotech-za.github.io/pixel-fix-proZA/" target="_blank">MAIN SITE</a>
+    <a href="https://github.com/PixelProTech-ZA/PixelProTech-DriveManager" target="_blank">GITHUB</a>
+    <a href="tel:+27766459348">076 645 9348</a>
+    <a href="mailto:pixelprotechsolutions@gmail.com">EMAIL</a>
+    <a href="https://wa.me/27766459348" target="_blank">WHATSAPP</a>
+  </div>
+  <div class="footer-copy">© 2026 PIXELPROTECH SOLUTIONS · JOHANNESBURG & PRETORIA, GAUTENG · ALL RIGHTS RESERVED</div>
+</footer>
+
+</body>
+</html>
